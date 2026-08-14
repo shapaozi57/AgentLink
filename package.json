@@ -1,0 +1,15 @@
+﻿{
+    "name":  "agentlink",
+    "version":  "0.1.0",
+    "private":  true,
+    "packageManager":  "pnpm@10.12.1",
+    "scripts":  {
+                    "dev:bridge":  "pnpm --filter agent-link-bridge dev",
+                    "build:protocol":  "pnpm --filter @agentlink/protocol build",
+                    "check":  "pnpm --filter @agentlink/protocol typecheck \u0026\u0026 pnpm --filter agent-link-bridge check \u0026\u0026 pnpm --filter agent-link-relay check",
+                    "test":  "pnpm --filter agent-link-bridge test \u0026\u0026 pnpm --filter agent-link-relay test",
+                    "dev:relay":  "pnpm --filter agent-link-relay dev",
+                    "check:relay":  "pnpm --filter agent-link-relay check",
+                    "test:relay":  "pnpm --filter agent-link-relay test"
+                }
+}

@@ -1,0 +1,15 @@
+﻿services:
+  - type: web
+    name: agentlink-relay
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter agent-link-relay check
+    startCommand: corepack enable && pnpm --filter agent-link-relay start
+    envVars:
+      - key: NODE_VERSION
+        value: 24.16.0
+      - key: AGENTLINK_RELAY_SECRET
+        generateValue: true
+      - key: AGENTLINK_RELAY_DEVICE_ID
+        value: pc-main
