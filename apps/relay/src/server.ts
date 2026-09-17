@@ -1,4 +1,4 @@
-﻿import websocket from "@fastify/websocket";
+import websocket from "@fastify/websocket";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import QRCode from "qrcode";
 import type WebSocket from "ws";
@@ -40,6 +40,8 @@ interface RelayHttpResponse {
 }
 
 const jsonContent = "application/json; charset=utf-8";
+const bridgeHeartbeatMs = 15_000;
+const bridgeStaleMs = 45_000;
 
 export async function buildRelayServer(options: RelayOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
@@ -50,6 +52,7 @@ export async function buildRelayServer(options: RelayOptions = {}): Promise<Fast
   const bridges = new Map<string, BridgeConnection>();
   const mobileSockets = new Map<string, Set<RelaySocket>>();
   const pending = new Map<string, PendingRequest>();
+  const heartbeatTimer = setInterval(() => pruneAndPingBridges(bridges, pending, mobileSockets), bridgeHeartbeatMs);
 
   await app.register(websocket);
 
@@ -136,9 +139,10 @@ export async function buildRelayServer(options: RelayOptions = {}): Promise<Fast
     });
   });
 
-  app.all("/v1/*", async (request, reply) => proxyToBridge(request, reply, { secret, fixedDeviceId, bridges, pending, requestTimeoutMs }));
+  app.all("/v1/*", async (request, reply) => proxyToBridge(request, reply, { secret, fixedDeviceId, bridges, mobileSockets, pending, requestTimeoutMs }));
 
   app.addHook("onClose", async () => {
+    clearInterval(heartbeatTimer);
     for (const bridge of bridges.values()) bridge.socket.close(1001, "server closing");
     for (const sockets of mobileSockets.values()) for (const socket of sockets) socket.close(1001, "server closing");
     for (const item of pending.values()) {
@@ -158,6 +162,7 @@ async function proxyToBridge(
     secret: string;
     fixedDeviceId: string;
     bridges: Map<string, BridgeConnection>;
+    mobileSockets: Map<string, Set<RelaySocket>>;
     pending: Map<string, PendingRequest>;
     requestTimeoutMs: number;
   },
@@ -167,13 +172,23 @@ async function proxyToBridge(
   const bridge = context.bridges.get(auth.deviceId);
   if (!bridge || bridge.socket.readyState !== 1) return reply.code(503).send({ error: "BRIDGE_NOT_CONNECTED", deviceId: auth.deviceId });
   const requestId = newId("req");
-  const response = await sendBridgeRequest(bridge, context.pending, context.requestTimeoutMs, {
-    type: "relay.request",
-    requestId,
-    method: request.method,
-    path: request.url,
-    body: request.body ?? null,
-  });
+  let response: RelayHttpResponse;
+  try {
+    response = await sendBridgeRequest(bridge, context.pending, context.requestTimeoutMs, {
+      type: "relay.request",
+      requestId,
+      method: request.method,
+      path: request.url,
+      body: request.body ?? null,
+    });
+  } catch (error) {
+    context.bridges.delete(auth.deviceId);
+    bridge.socket.close(1011, "bridge request failed");
+    rejectDevicePending(auth.deviceId, context.pending, "Bridge request failed");
+    broadcastDeviceStatus(auth.deviceId, false, context.mobileSockets);
+    const message = error instanceof Error ? error.message : String(error);
+    return reply.code(504).send({ error: "BRIDGE_REQUEST_TIMEOUT", deviceId: auth.deviceId, message });
+  }
   reply.code(response.statusCode);
   const contentType = response.headers?.["content-type"] ?? response.headers?.["Content-Type"];
   if (contentType) reply.header("content-type", contentType);
@@ -205,6 +220,7 @@ function handleBridgeMessage(
     bridge.name = message.name;
     return;
   }
+  if (message.type === "relay.pong") return;
   if (message.type === "relay.response") {
     const item = pending.get(message.requestId);
     if (!item) return;
@@ -220,6 +236,25 @@ function handleBridgeMessage(
     for (const socket of sockets) {
       if (socket.readyState === 1) socket.send(text);
     }
+  }
+}
+
+function pruneAndPingBridges(
+  bridges: Map<string, BridgeConnection>,
+  pending: Map<string, PendingRequest>,
+  mobileSockets: Map<string, Set<RelaySocket>>,
+) {
+  const now = Date.now();
+  for (const [deviceId, bridge] of bridges.entries()) {
+    const ageMs = now - Date.parse(bridge.lastSeenAt);
+    if (bridge.socket.readyState !== 1 || ageMs > bridgeStaleMs) {
+      bridges.delete(deviceId);
+      bridge.socket.close(1001, "bridge stale");
+      rejectDevicePending(deviceId, pending, "Bridge stale");
+      broadcastDeviceStatus(deviceId, false, mobileSockets);
+      continue;
+    }
+    bridge.socket.send(JSON.stringify({ type: "relay.ping" }));
   }
 }
 

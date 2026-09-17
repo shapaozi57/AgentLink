@@ -1,4 +1,4 @@
-﻿import os from "node:os";
+import os from "node:os";
 import WebSocket, { type RawData } from "ws";
 
 interface CloudRelayOptions {
@@ -12,7 +12,8 @@ interface CloudRelayOptions {
 type RelayMessage =
   | { type: "relay.ready"; deviceId: string; role: "bridge" }
   | { type: "relay.request"; requestId: string; method: string; path: string; body?: unknown }
-  | { type: "relay.error"; error: string };
+  | { type: "relay.error"; error: string }
+  | { type: "relay.ping" };
 
 export function startCloudRelayClient(options: CloudRelayOptions) {
   const relayUrl = normalizeRelayUrl(options.relayUrl ?? process.env.AGENTLINK_RELAY_URL ?? "");
@@ -87,6 +88,10 @@ class CloudRelayClient {
     if (!message) return;
     if (message.type === "relay.error") {
       console.warn(`AgentLink Relay rejected connection: ${message.error}`);
+      return;
+    }
+    if (message.type === "relay.ping") {
+      this.relaySocket?.send(JSON.stringify({ type: "relay.pong" }));
       return;
     }
     if (message.type !== "relay.request") return;

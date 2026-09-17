@@ -7,13 +7,20 @@ export interface PairingInfo {
 }
 
 export function buildPairingInfo(port: number, host = "0.0.0.0"): PairingInfo {
-  const urls = getBridgeUrls(port, host);
+  const localUrls = getBridgeUrls(port, host);
+  const relayUrl = normalizeUrl(process.env.AGENTLINK_RELAY_URL ?? "");
+  const urls = relayUrl ? [relayUrl, ...localUrls] : localUrls;
   const preferredUrl = urls[0] ?? `http://127.0.0.1:${port}`;
-  return { urls, preferredUrl, payload: pairingPayload(preferredUrl) };
+  return {
+    urls,
+    preferredUrl,
+    payload: pairingPayload(preferredUrl, relayUrl ? process.env.AGENTLINK_RELAY_SECRET : undefined),
+  };
 }
 
-export function pairingPayload(url: string) {
-  return `agentlink://bridge?url=${encodeURIComponent(url)}`;
+export function pairingPayload(url: string, token?: string) {
+  const auth = token ? `&token=${encodeURIComponent(token)}` : "";
+  return `agentlink://bridge?url=${encodeURIComponent(url)}${auth}`;
 }
 
 export function getBridgeUrls(port: number, host = "0.0.0.0") {
@@ -42,4 +49,8 @@ function addressScore(address: string) {
   if (isPrivate && d !== 1) return 0;
   if (isPrivate) return 1;
   return 2;
+}
+
+function normalizeUrl(value: string) {
+  return value.trim().replace(/\/+$/g, "");
 }

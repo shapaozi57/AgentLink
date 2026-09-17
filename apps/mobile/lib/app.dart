@@ -10,7 +10,10 @@ import 'bridge_client.dart';
 import 'mock_data.dart';
 import 'models.dart';
 
-const _seed = Color(0xff0b6e69);
+const _seed = Color(0xff6d5dfc);
+const _brandTeal = Color(0xff13c8a3);
+const _brandInk = Color(0xff111827);
+const _brandRose = Color(0xffff6b8a);
 const _bridgeUrlKey = 'agentlink.bridgeUrl';
 const _bridgeTokenKey = 'agentlink.bridgeToken';
 const _selectedWorkspaceIdKey = 'agentlink.selectedWorkspaceId';
@@ -72,22 +75,117 @@ class _AgentLinkAppState extends State<AgentLinkApp> {
 }
 
 ThemeData _theme(Brightness brightness) {
-  final scheme = ColorScheme.fromSeed(seedColor: _seed, brightness: brightness);
+  final dark = brightness == Brightness.dark;
+  final scheme = ColorScheme.fromSeed(
+      seedColor: _seed,
+      brightness: brightness,
+      primary: _seed,
+      secondary: _brandTeal,
+      tertiary: _brandRose,
+      surface: dark ? const Color(0xff0b1020) : const Color(0xfff7f8ff));
+  final textTheme = Typography.material2021(platform: TargetPlatform.android)
+      .black
+      .apply(
+          bodyColor: dark ? const Color(0xffe5e7eb) : _brandInk,
+          displayColor: dark ? Colors.white : _brandInk);
   return ThemeData(
     colorScheme: scheme,
     useMaterial3: true,
+    visualDensity: VisualDensity.adaptivePlatformDensity,
     scaffoldBackgroundColor: scheme.surface,
+    textTheme: textTheme.copyWith(
+      headlineSmall: textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w800, letterSpacing: -.35, height: 1.08),
+      titleLarge: textTheme.titleLarge
+          ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -.2),
+      titleMedium: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+      labelLarge: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+    ),
     appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface, surfaceTintColor: Colors.transparent),
+        elevation: 0,
+        centerTitle: false,
+        backgroundColor: Colors.transparent,
+        foregroundColor: scheme.onSurface,
+        surfaceTintColor: Colors.transparent),
+    navigationBarTheme: NavigationBarThemeData(
+      height: 72,
+      elevation: 0,
+      backgroundColor: (dark ? const Color(0xff111827) : Colors.white)
+          .withValues(alpha: .92),
+      indicatorColor: scheme.primaryContainer.withValues(alpha: .9),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+          fontSize: 12,
+          fontWeight: states.contains(WidgetState.selected)
+              ? FontWeight.w800
+              : FontWeight.w600)),
+      iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+          size: states.contains(WidgetState.selected) ? 25 : 23,
+          color: states.contains(WidgetState.selected)
+              ? scheme.primary
+              : scheme.onSurfaceVariant)),
+    ),
     cardTheme: CardThemeData(
         elevation: 0,
+        color: (dark ? const Color(0xff111827) : Colors.white)
+            .withValues(alpha: .86),
+        surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+        shadowColor: scheme.shadow.withValues(alpha: .16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: scheme.surfaceContainerHighest.withValues(alpha: .6),
+      fillColor: (dark ? const Color(0xff1f2937) : Colors.white)
+          .withValues(alpha: .72),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      hintStyle:
+          TextStyle(color: scheme.onSurfaceVariant.withValues(alpha: .68)),
       border: OutlineInputBorder(
-          borderSide: BorderSide.none, borderRadius: BorderRadius.circular(8)),
+          borderSide: BorderSide.none, borderRadius: BorderRadius.circular(18)),
+      enabledBorder: OutlineInputBorder(
+          borderSide:
+              BorderSide(color: scheme.outlineVariant.withValues(alpha: .25)),
+          borderRadius: BorderRadius.circular(18)),
+      focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: scheme.primary, width: 1.4),
+          borderRadius: BorderRadius.circular(18)),
+    ),
+    chipTheme: ChipThemeData(
+      side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .35)),
+      selectedColor: scheme.primaryContainer,
+      backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: .55),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          side: BorderSide(color: scheme.outlineVariant),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+    ),
+    listTileTheme: ListTileThemeData(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+      iconColor: scheme.primary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    ),
+    dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant.withValues(alpha: .55), space: 1),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: dark ? const Color(0xff0f172a) : Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      showDragHandle: true,
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
   );
 }
@@ -740,35 +838,107 @@ class _HomeScreenState extends State<HomeScreen> {
           onDesktopSafetySettingsSaved: _saveDesktopSafetySettings),
     ];
     return Scaffold(
-      body: SafeArea(child: IndexedStack(index: _index, children: pages)),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.format_list_bulleted),
-              selectedIcon: Icon(Icons.playlist_play),
-              label: '任务'),
-          NavigationDestination(
-              icon: Icon(Icons.folder_outlined),
-              selectedIcon: Icon(Icons.folder),
-              label: '项目'),
-          NavigationDestination(
-              icon: Icon(Icons.preview_outlined),
-              selectedIcon: Icon(Icons.preview),
-              label: '预览'),
-          NavigationDestination(
-              icon: Icon(Icons.devices_outlined),
-              selectedIcon: Icon(Icons.devices),
-              label: '设备'),
-          NavigationDestination(
-              icon: Icon(Icons.tune_outlined),
-              selectedIcon: Icon(Icons.tune),
-              label: '设置'),
-        ],
-      ),
+      extendBody: true,
+      body: _AppBackdrop(
+          child: SafeArea(child: IndexedStack(index: _index, children: pages))),
+      bottomNavigationBar: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+          child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: NavigationBar(
+                selectedIndex: _index,
+                onDestinationSelected: (value) =>
+                    setState(() => _index = value),
+                destinations: const [
+                  NavigationDestination(
+                      icon: Icon(Icons.format_list_bulleted),
+                      selectedIcon: Icon(Icons.playlist_play),
+                      label: '任务'),
+                  NavigationDestination(
+                      icon: Icon(Icons.folder_outlined),
+                      selectedIcon: Icon(Icons.folder),
+                      label: '项目'),
+                  NavigationDestination(
+                      icon: Icon(Icons.preview_outlined),
+                      selectedIcon: Icon(Icons.preview),
+                      label: '预览'),
+                  NavigationDestination(
+                      icon: Icon(Icons.devices_outlined),
+                      selectedIcon: Icon(Icons.devices),
+                      label: '设备'),
+                  NavigationDestination(
+                      icon: Icon(Icons.tune_outlined),
+                      selectedIcon: Icon(Icons.tune),
+                      label: '设置'),
+                ],
+              ))),
     );
   }
+}
+
+class _AppBackdrop extends StatelessWidget {
+  const _AppBackdrop({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: dark
+                  ? const [
+                      Color(0xff050816),
+                      Color(0xff111827),
+                      Color(0xff171226)
+                    ]
+                  : const [
+                      Color(0xfff7f8ff),
+                      Color(0xffeefcf8),
+                      Color(0xfffff5f7)
+                    ]),
+        ),
+        child: Stack(children: [
+          Positioned(
+              top: -130,
+              right: -90,
+              child: _GlowOrb(
+                  size: 260,
+                  color: scheme.primary.withValues(alpha: dark ? .20 : .18))),
+          Positioned(
+              top: 170,
+              left: -120,
+              child: _GlowOrb(
+                  size: 250,
+                  color: scheme.secondary.withValues(alpha: dark ? .16 : .20))),
+          Positioned(
+              bottom: 80,
+              right: -110,
+              child: _GlowOrb(
+                  size: 220,
+                  color: scheme.tertiary.withValues(alpha: dark ? .14 : .16))),
+          child,
+        ]));
+  }
+}
+
+class _GlowOrb extends StatelessWidget {
+  const _GlowOrb({required this.size, required this.color});
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+      child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                  colors: [color, color.withValues(alpha: 0)]))));
 }
 
 class TasksPage extends StatefulWidget {
@@ -3206,41 +3376,116 @@ class _TopBar extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool online;
+
   @override
-  Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(children: [
-        Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 3),
-          Text(subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall)
-        ])),
-        const SizedBox(width: 12),
-        _OnlineBadge(online: online)
-      ]));
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+        child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: dark
+                      ? [
+                          scheme.primary.withValues(alpha: .36),
+                          const Color(0xff111827).withValues(alpha: .90),
+                          scheme.tertiary.withValues(alpha: .22),
+                        ]
+                      : [
+                          Colors.white.withValues(alpha: .92),
+                          scheme.primaryContainer.withValues(alpha: .56),
+                          scheme.secondaryContainer.withValues(alpha: .44),
+                        ]),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: dark ? .10 : .58)),
+              boxShadow: [
+                BoxShadow(
+                    color: scheme.primary.withValues(alpha: dark ? .18 : .13),
+                    blurRadius: 28,
+                    offset: const Offset(0, 12)),
+              ],
+            ),
+            child: Row(children: [
+              Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(colors: [
+                        scheme.primary,
+                        scheme.secondary,
+                      ]),
+                      boxShadow: [
+                        BoxShadow(
+                            color: scheme.primary.withValues(alpha: .30),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8)),
+                      ]),
+                  child: Icon(Icons.auto_awesome,
+                      color: scheme.onPrimary, size: 22)),
+              const SizedBox(width: 14),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(fontSize: 28)),
+                    const SizedBox(height: 4),
+                    Text(subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600))
+                  ])),
+              const SizedBox(width: 12),
+              _OnlineBadge(online: online)
+            ])));
+  }
 }
 
 class _OnlineBadge extends StatelessWidget {
   const _OnlineBadge({this.online = true});
   final bool online;
   @override
-  Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-          color: (online ? Colors.green : Colors.grey).withValues(alpha: .14),
-          borderRadius: BorderRadius.circular(6)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(online ? Icons.circle : Icons.circle_outlined,
-            size: 9, color: online ? Colors.green : Colors.grey),
-        const SizedBox(width: 5),
-        Text(online ? '在线' : '离线',
-            style: Theme.of(context).textTheme.labelSmall)
-      ]));
+  Widget build(BuildContext context) {
+    final color = online ? const Color(0xff10b981) : Colors.blueGrey;
+    return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+            color: color.withValues(alpha: .14),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: color.withValues(alpha: .28))),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  boxShadow: online
+                      ? [
+                          BoxShadow(
+                              color: color.withValues(alpha: .55),
+                              blurRadius: 8)
+                        ]
+                      : null)),
+          const SizedBox(width: 6),
+          Text(online ? '在线' : '离线',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall
+                  ?.copyWith(fontWeight: FontWeight.w800, color: color))
+        ]));
+  }
 }
 
 class _StatusDot extends StatelessWidget {
@@ -3293,12 +3538,26 @@ class _FilterChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onSelected;
   @override
-  Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-          label: Text(label),
-          selected: selected,
-          onSelected: (_) => onSelected()));
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: FilterChip(
+            label: Text(label),
+            selected: selected,
+            showCheckmark: false,
+            avatar: selected
+                ? Icon(Icons.bolt_rounded, size: 15, color: scheme.primary)
+                : null,
+            side: BorderSide(
+                color: selected
+                    ? scheme.primary.withValues(alpha: .45)
+                    : scheme.outlineVariant.withValues(alpha: .35)),
+            labelStyle: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: selected ? scheme.primary : scheme.onSurfaceVariant),
+            onSelected: (_) => onSelected()));
+  }
 }
 
 class _TaskComposer extends StatelessWidget {
@@ -3339,77 +3598,111 @@ class _TaskComposer extends StatelessWidget {
   final Future<Workspace> Function(String name) onCreateWorkspace;
   final VoidCallback onSend;
   @override
-  Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-      decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          border:
-              Border(top: BorderSide(color: Theme.of(context).dividerColor))),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Row(children: [
-          Expanded(
-              child: ActionChip(
-                  avatar: Icon(
-                      targetMode == TaskTargetMode.chat
-                          ? Icons.chat_bubble_outline
-                          : Icons.folder_outlined,
-                      size: 18),
-                  label: SizedBox(
-                      width: double.infinity,
-                      child: Text(_targetLabel,
-                          maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  onPressed: () => _showTargetPicker(context))),
-          const SizedBox(width: 8),
-          ActionChip(
-              avatar: const Icon(Icons.route_outlined, size: 18),
-              label: Text(controlModeLabelOf(selectedControlMode)),
-              onPressed: () => _showControlModeSettings(context)),
-        ]),
-        const SizedBox(height: 8),
-        Container(
-            padding:
-                const EdgeInsets.only(left: 14, right: 5, top: 3, bottom: 3),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
+        child: Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
             decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: .65),
-                borderRadius: BorderRadius.circular(24)),
-            child: Row(children: [
-              Expanded(
-                  child: TextField(
-                      controller: controller,
-                      minLines: 1,
-                      maxLines: 4,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => onSend(),
-                      decoration: const InputDecoration.collapsed(
-                          hintText: '给 Codex 描述一个任务……'))),
-              const SizedBox(width: 6),
-              InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () => _showModelSettings(context),
-                  child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 7),
-                      decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surface
-                              .withValues(alpha: .75),
-                          borderRadius: BorderRadius.circular(18)),
-                      child: Text(
-                          '${_modelShortLabel(selectedModel)} · '
-                          '${_reasoningShortLabel(selectedReasoning)}',
-                          style: Theme.of(context).textTheme.labelSmall))),
-              const SizedBox(width: 6),
-              IconButton.filled(
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onSend,
-                  tooltip: '发送任务',
-                  icon: const Icon(Icons.arrow_upward))
-            ]))
-      ]));
+              color: (dark ? const Color(0xff111827) : Colors.white)
+                  .withValues(alpha: .88),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: dark ? .10 : .65)),
+              boxShadow: [
+                BoxShadow(
+                    color: scheme.shadow.withValues(alpha: dark ? .28 : .12),
+                    blurRadius: 26,
+                    offset: const Offset(0, 12))
+              ],
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Row(children: [
+                Expanded(
+                    child: ActionChip(
+                        avatar: Icon(
+                            targetMode == TaskTargetMode.chat
+                                ? Icons.chat_bubble_outline
+                                : Icons.folder_outlined,
+                            size: 18),
+                        label: SizedBox(
+                            width: double.infinity,
+                            child: Text(_targetLabel,
+                                maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        onPressed: () => _showTargetPicker(context))),
+                const SizedBox(width: 8),
+                ActionChip(
+                    avatar: const Icon(Icons.route_outlined, size: 18),
+                    label: Text(controlModeLabelOf(selectedControlMode)),
+                    onPressed: () => _showControlModeSettings(context)),
+              ]),
+              const SizedBox(height: 10),
+              Container(
+                  padding: const EdgeInsets.only(
+                      left: 16, right: 6, top: 4, bottom: 4),
+                  decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest
+                          .withValues(alpha: dark ? .46 : .62),
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(
+                          color: scheme.outlineVariant.withValues(alpha: .28))),
+                  child: Row(children: [
+                    Expanded(
+                        child: TextField(
+                            controller: controller,
+                            minLines: 1,
+                            maxLines: 4,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => onSend(),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            decoration: InputDecoration.collapsed(
+                                hintText: '给 Codex 描述一个任务……',
+                                hintStyle: TextStyle(
+                                    color: scheme.onSurfaceVariant
+                                        .withValues(alpha: .66))))),
+                    const SizedBox(width: 6),
+                    InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => _showModelSettings(context),
+                        child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                                color: scheme.surface.withValues(alpha: .78),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: scheme.outlineVariant
+                                        .withValues(alpha: .32))),
+                            child: Text(
+                                '${_modelShortLabel(selectedModel)} · '
+                                '${_reasoningShortLabel(selectedReasoning)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800)))),
+                    const SizedBox(width: 6),
+                    Container(
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                                colors: [scheme.primary, scheme.secondary]),
+                            boxShadow: [
+                              BoxShadow(
+                                  color: scheme.primary.withValues(alpha: .32),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 6))
+                            ]),
+                        child: IconButton(
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onSend,
+                            tooltip: '发送任务',
+                            color: scheme.onPrimary,
+                            icon: const Icon(Icons.arrow_upward_rounded)))
+                  ]))
+            ])));
+  }
 
   String get _targetLabel => targetMode == TaskTargetMode.chat
       ? '仅对话 · 不写入文件'
