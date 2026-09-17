@@ -11,12 +11,20 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $LogDir = Join-Path $Root 'tooling\logs'
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $LogFile = Join-Path $LogDir 'bridge-manager.log'
+$BridgeRunLog = Join-Path $LogDir 'bridge-runtime.log'
 $RelayUrl = if ($RelayUrl) { $RelayUrl.TrimEnd('/') } else { 'https://agentlink-relay.onrender.com' }
 $RelayDeviceId = if ($RelayDeviceId) { $RelayDeviceId } else { 'pc-main' }
 
 function Write-ManagerLog([string]$Message) {
   $line = "[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Message
-  Add-Content -LiteralPath $LogFile -Value $line -Encoding UTF8
+  try {
+    Add-Content -LiteralPath $LogFile -Value $line -Encoding UTF8 -ErrorAction Stop
+  } catch {
+    try {
+      $fallback = Join-Path $env:TEMP 'agentlink-bridge-manager.log'
+      Add-Content -LiteralPath $fallback -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+    } catch {}
+  }
 }
 
 function Invoke-JsonFast([string]$Uri, [int]$TimeoutMs = 1200) {
@@ -114,7 +122,7 @@ function Start-BridgeProcess() {
   Write-ManagerLog "Starting Bridge browser manager on port $Port with Relay $RelayUrl"
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = 'cmd.exe'
-  $psi.Arguments = "/c pnpm --filter agent-link-bridge start >> `"$LogFile`" 2>>&1"
+  $psi.Arguments = "/c pnpm --filter agent-link-bridge start >> `"$BridgeRunLog`" 2>>&1"
   $psi.WorkingDirectory = $Root
   $psi.UseShellExecute = $false
   $psi.CreateNoWindow = $true
@@ -129,6 +137,37 @@ function Start-BridgeProcess() {
   $proc = New-Object System.Diagnostics.Process
   $proc.StartInfo = $psi
   [void]$proc.Start()
+}
+
+
+function Open-ManagerBrowser([string]$Url) {
+  Write-ManagerLog "Opening browser manager: $Url"
+  $opened = $false
+  foreach ($browser in @('msedge.exe', 'chrome.exe')) {
+    try {
+      Start-Process -FilePath $browser -ArgumentList $Url -WindowStyle Normal
+      $opened = $true
+      break
+    } catch {
+      Write-ManagerLog "Browser launch via $browser failed: $($_.Exception.Message)"
+    }
+  }
+  if (-not $opened) {
+    try {
+      Start-Process -FilePath 'rundll32.exe' -ArgumentList "url.dll,FileProtocolHandler $Url" -WindowStyle Normal
+      $opened = $true
+    } catch {
+      Write-ManagerLog "Browser launch via rundll32 failed: $($_.Exception.Message)"
+    }
+  }
+  if (-not $opened) {
+    try {
+      Set-Clipboard -Value $Url
+      Write-ManagerLog "Browser launch failed. Manager URL copied to clipboard: $Url"
+    } catch {}
+    Start-Process notepad.exe $LogFile
+    exit 1
+  }
 }
 
 function Wait-Bridge([int]$TimeoutMs = 15000) {
@@ -159,8 +198,7 @@ try {
     Start-Process notepad.exe $LogFile
     exit 1
   }
-  Write-ManagerLog "Opening browser manager: $($bridge.LocalManageUrl)"
-  Start-Process $bridge.LocalManageUrl
+  Open-ManagerBrowser $bridge.LocalManageUrl
 } catch {
   Write-ManagerLog "Manager launch failed: $($_.Exception.Message)"
   Start-Process notepad.exe $LogFile
